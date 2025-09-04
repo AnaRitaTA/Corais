@@ -1,0 +1,317 @@
+import React, { useState, useEffect } from 'react';
+import { Thermometer, Droplets, Zap, Sun, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+
+const CoralHealthPredictor = () => {
+  const [parameters, setParameters] = useState({
+    temperature: 26,
+    pH: 8.1,
+    salinity: 35,
+    dissolvedOxygen: 7,
+    nitrate: 0.1,
+    phosphate: 0.03,
+    turbidity: 1,
+    lightIntensity: 75
+  });
+
+  const [healthScore, setHealthScore] = useState(100);
+  const [healthStatus, setHealthStatus] = useState('Excelente');
+  const [stressFactors, setStressFactors] = useState([]);
+
+  // Faixas ideais para a saúde dos corais
+  const optimalRanges = {
+    temperature: { min: 25, max: 29, unit: '°C' },
+    pH: { min: 7.8, max: 8.3, unit: '' },
+    salinity: { min: 34, max: 37, unit: 'ppt' },
+    dissolvedOxygen: { min: 6, max: 9, unit: 'mg/L' },
+    nitrate: { min: 0, max: 0.25, unit: 'mg/L' },
+    phosphate: { min: 0, max: 0.1, unit: 'mg/L' },
+    turbidity: { min: 0, max: 3, unit: 'NTU' },
+    lightIntensity: { min: 60, max: 90, unit: '%' }
+  };
+
+  const parameterLabels = {
+    temperature: 'Temperatura da Água',
+    pH: 'Nível de pH',
+    salinity: 'Salinidade',
+    dissolvedOxygen: 'Oxigénio Dissolvido',
+    nitrate: 'Concentração de Nitratos',
+    phosphate: 'Concentração de Fosfatos',
+    turbidity: 'Turvação',
+    lightIntensity: 'Intensidade Luminosa'
+  };
+
+  const calculateHealthScore = () => {
+    let totalScore = 100;
+    const factors = [];
+
+    // Stress térmico
+    if (parameters.temperature < 23 || parameters.temperature > 31) {
+      const penalty = Math.abs(parameters.temperature - 27) * 8;
+      totalScore -= Math.min(penalty, 40);
+      factors.push(`Stress térmico: ${parameters.temperature}°C está fora da faixa segura`);
+    } else if (parameters.temperature < 25 || parameters.temperature > 29) {
+      totalScore -= 10;
+      factors.push(`Stress térmico leve`);
+    }
+
+    // Stress de pH
+    if (parameters.pH < 7.5 || parameters.pH > 8.5) {
+      const penalty = Math.abs(parameters.pH - 8.1) * 25;
+      totalScore -= Math.min(penalty, 35);
+      factors.push(`Stress de pH: Acidificação oceânica afetando a calcificação`);
+    } else if (parameters.pH < 7.8 || parameters.pH > 8.3) {
+      totalScore -= 8;
+      factors.push(`Stress de pH leve`);
+    }
+
+    // Stress salino
+    if (parameters.salinity < 30 || parameters.salinity > 40) {
+      totalScore -= 20;
+      factors.push(`Stress salino: Desequilíbrio osmótico`);
+    }
+
+    // Stress de oxigénio dissolvido
+    if (parameters.dissolvedOxygen < 4) {
+      totalScore -= 25;
+      factors.push(`Hipóxia: Baixo oxigénio dissolvido`);
+    } else if (parameters.dissolvedOxygen < 6) {
+      totalScore -= 10;
+      factors.push(`Stress de oxigénio leve`);
+    }
+
+    // Poluição por nutrientes
+    if (parameters.nitrate > 0.5) {
+      totalScore -= 20;
+      factors.push(`Poluição por nitratos: Promovendo crescimento de algas`);
+    } else if (parameters.nitrate > 0.25) {
+      totalScore -= 8;
+      factors.push(`Nitratos elevados`);
+    }
+
+    if (parameters.phosphate > 0.15) {
+      totalScore -= 15;
+      factors.push(`Poluição por fosfatos: Risco de eutrofização`);
+    } else if (parameters.phosphate > 0.1) {
+      totalScore -= 5;
+      factors.push(`Fosfatos elevados`);
+    }
+
+    // Stress por turvação
+    if (parameters.turbidity > 5) {
+      totalScore -= 20;
+      factors.push(`Alta turvação: Redução da penetração luminosa`);
+    } else if (parameters.turbidity > 3) {
+      totalScore -= 8;
+      factors.push(`Turvação moderada`);
+    }
+
+    // Stress luminoso
+    if (parameters.lightIntensity < 40 || parameters.lightIntensity > 95) {
+      totalScore -= 15;
+      factors.push(`Stress luminoso: Afetando a fotossíntese`);
+    } else if (parameters.lightIntensity < 60 || parameters.lightIntensity > 90) {
+      totalScore -= 5;
+      factors.push(`Stress luminoso leve`);
+    }
+
+    setHealthScore(Math.max(0, totalScore));
+    setStressFactors(factors);
+
+    if (totalScore >= 85) setHealthStatus('Excelente');
+    else if (totalScore >= 70) setHealthStatus('Bom');
+    else if (totalScore >= 50) setHealthStatus('Razoável');
+    else if (totalScore >= 30) setHealthStatus('Fraco');
+    else setHealthStatus('Crítico');
+  };
+
+  useEffect(() => {
+    calculateHealthScore();
+  }, [parameters]);
+
+  const handleParameterChange = (param, value) => {
+    setParameters(prev => ({
+      ...prev,
+      [param]: parseFloat(value)
+    }));
+  };
+
+  const getParameterColor = (param) => {
+    const value = parameters[param];
+    const range = optimalRanges[param];
+    
+    if (value >= range.min && value <= range.max) return 'text-green-600';
+    return 'text-red-600';
+  };
+
+  const getHealthColor = () => {
+    if (healthScore >= 85) return 'text-green-600';
+    if (healthScore >= 70) return 'text-yellow-600';
+    if (healthScore >= 50) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const getHealthIcon = () => {
+    if (healthScore >= 70) return <CheckCircle className="w-8 h-8 text-green-600" />;
+    if (healthScore >= 50) return <AlertTriangle className="w-8 h-8 text-orange-600" />;
+    return <XCircle className="w-8 h-8 text-red-600" />;
+  };
+
+  const resetToOptimal = () => {
+    setParameters({
+      temperature: 27,
+      pH: 8.1,
+      salinity: 35,
+      dissolvedOxygen: 7.5,
+      nitrate: 0.1,
+      phosphate: 0.05,
+      turbidity: 1,
+      lightIntensity: 80
+    });
+  };
+
+  const simulateStress = () => {
+    setParameters({
+      temperature: 32,
+      pH: 7.6,
+      salinity: 32,
+      dissolvedOxygen: 4.5,
+      nitrate: 0.8,
+      phosphate: 0.2,
+      turbidity: 6,
+      lightIntensity: 45
+    });
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-cyan-50 min-h-screen">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-blue-800 mb-2">🐠 Preditor de Saúde dos Corais</h1>
+        <p className="text-lg text-gray-600">Explore como a química ambiental afeta os ecossistemas de recifes de coral</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Controles de Parâmetros */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Parâmetros Ambientais</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Object.entries(parameters).map(([param, value]) => (
+                <div key={param} className="space-y-2">
+                  <label className="flex items-center text-sm font-medium text-gray-700">
+                    {param === 'temperature' && <Thermometer className="w-4 h-4 mr-2" />}
+                    {param === 'pH' && <Droplets className="w-4 h-4 mr-2" />}
+                    {param === 'dissolvedOxygen' && <Zap className="w-4 h-4 mr-2" />}
+                    {param === 'lightIntensity' && <Sun className="w-4 h-4 mr-2" />}
+                    {!['temperature', 'pH', 'dissolvedOxygen', 'lightIntensity'].includes(param) && <Droplets className="w-4 h-4 mr-2" />}
+                    {parameterLabels[param]}
+                  </label>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="range"
+                      min={param === 'temperature' ? 20 : param === 'pH' ? 7.0 : param === 'salinity' ? 25 : param === 'dissolvedOxygen' ? 2 : param === 'nitrate' ? 0 : param === 'phosphate' ? 0 : param === 'turbidity' ? 0 : 20}
+                      max={param === 'temperature' ? 35 : param === 'pH' ? 9.0 : param === 'salinity' ? 45 : param === 'dissolvedOxygen' ? 12 : param === 'nitrate' ? 2 : param === 'phosphate' ? 0.5 : param === 'turbidity' ? 10 : 100}
+                      step={param === 'pH' ? 0.1 : param === 'nitrate' || param === 'phosphate' ? 0.01 : param === 'turbidity' ? 0.1 : param === 'temperature' ? 0.5 : 1}
+                      value={value}
+                      onChange={(e) => handleParameterChange(param, e.target.value)}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className={`text-sm font-mono w-16 ${getParameterColor(param)}`}>
+                      {value.toFixed(param === 'pH' || param === 'nitrate' || param === 'phosphate' || param === 'turbidity' ? 2 : param === 'temperature' ? 1 : 0)}{optimalRanges[param].unit}
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500">
+                    Ideal: {optimalRanges[param].min}-{optimalRanges[param].max}{optimalRanges[param].unit}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex space-x-4 mt-6">
+              <button
+                onClick={resetToOptimal}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Restaurar Condições Ideais
+              </button>
+              <button
+                onClick={simulateStress}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Simular Condições de Stress
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Avaliação de Saúde */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Avaliação da Saúde dos Corais</h2>
+            
+            <div className="mb-4">
+              {getHealthIcon()}
+            </div>
+            
+            <div className={`text-3xl font-bold mb-2 ${getHealthColor()}`}>
+              {healthScore.toFixed(0)}%
+            </div>
+            
+            <div className={`text-lg font-semibold ${getHealthColor()}`}>
+              {healthStatus}
+            </div>
+            
+            <div className="w-full bg-gray-200 rounded-full h-3 mt-4">
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  healthScore >= 85 ? 'bg-green-500' : 
+                  healthScore >= 70 ? 'bg-yellow-500' : 
+                  healthScore >= 50 ? 'bg-orange-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${healthScore}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Fatores de Stress */}
+          {stressFactors.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">Fatores de Stress</h3>
+              <div className="space-y-2">
+                {stressFactors.map((factor, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{factor}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Informação Educativa */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold mb-3 text-gray-800">Conceitos Químicos Principais</h3>
+            <div className="space-y-3 text-sm text-gray-700">
+              <div>
+                <strong>Acidificação Oceânica:</strong> pH baixo reduz a capacidade dos corais construírem esqueletos de carbonato de cálcio
+              </div>
+              <div>
+                <strong>Stress Térmico:</strong> Temperaturas elevadas causam branqueamento ao perturbar as algas simbióticas
+              </div>
+              <div>
+                <strong>Eutrofização:</strong> Excesso de nutrientes promove crescimento de algas que competem com os corais
+              </div>
+              <div>
+                <strong>Oxigénio Dissolvido:</strong> Essencial para a respiração e processos metabólicos dos corais
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CoralHealthPredictor;
